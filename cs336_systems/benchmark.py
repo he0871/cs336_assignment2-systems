@@ -1,3 +1,4 @@
+import os
 import timeit
 import yaml
 import numpy as np
@@ -11,6 +12,29 @@ import cs336_basics.optimizer as optimizer
 def load_config():
     with open("cs336_basics/train_lm/hyconfig.yaml") as f:
         return yaml.safe_load(f)
+
+
+def resolve_dataset_path(path, cache_dir="/tmp/cs336_data"):
+    """Return a local path for `path`, downloading it first if it lives in GCS.
+
+    np.memmap requires a real local file, so a gs:// object is fetched once
+    into a local cache and reused on subsequent runs.
+    """
+    if not path.startswith("gs://"):
+        return os.path.expanduser(path)
+
+    from google.cloud import storage
+
+    bucket_name, blob_name = path[len("gs://"):].split("/", 1)
+    os.makedirs(cache_dir, exist_ok=True)
+    local_path = os.path.join(cache_dir, os.path.basename(blob_name))
+
+    if not os.path.exists(local_path):
+        client = storage.Client()
+        blob = client.bucket(bucket_name).blob(blob_name)
+        blob.download_to_filename(local_path)
+
+    return local_path
 
 
 def build_model(config):
@@ -79,7 +103,7 @@ if __name__ == "__main__":
     model, optimizer, device = build_model(config)
 
     dataset = np.memmap(
-        config["dataset_path"],
+        resolve_dataset_path(config["dataset_path"]),
         dtype=np.uint16,
         mode="r",
     )
