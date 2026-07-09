@@ -1,0 +1,24 @@
+learning_rate: 1e-3
+batch_size: 4
+context_length: 256
+device: "cpu"
+load_size: 1000
+vocab_size: 10000 # 10k vocab size for tiny stories, 32k vocab size for openwebtext
+d_model: 512
+num_layers: 4
+num_heads: 16
+d_ff: 1344
+rope_theta: 10000.0
+temperature: 0.8
+top_p: 0.9
+warmup_steps: 5
+chunk_size: 200000
+measurement_steps: 10
+
+
+vocab_path: "~/code/assignment1-basics/cs336_basics/tokenizers/TinyStoriesV2-GPT4-train-10k.vocab"
+merges_path: "~/code/assignment1-basics/cs336_basics/tokenizers/TinyStoriesV2-GPT4-train-10k.merges"
+checkpoint: "~/code/assignment1-basics/cs336_basics/train_lm/tinyStories_best.pt"
+dataset_path: "~/code/assignment1-basics/data/tinystories_train_encoded.txt"
+
+max_new_tokens: 100
