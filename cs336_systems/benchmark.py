@@ -52,7 +52,7 @@ def build_model(config):
 
     opt = optimizer.AdamW(
         net.parameters(),
-        lr=config["learning_rate"],
+        lr=float(config["learning_rate"]),
     )
 
     return net, opt, device
