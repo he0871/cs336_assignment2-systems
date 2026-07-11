@@ -16,9 +16,9 @@ chunk_size: 200000
 measurement_steps: 10
 
 
-vocab_path: "~/code/assignment1-basics/cs336_basics/tokenizers/TinyStoriesV2-GPT4-train-10k.vocab"
-merges_path: "~/code/assignment1-basics/cs336_basics/tokenizers/TinyStoriesV2-GPT4-train-10k.merges"
-checkpoint: "~/code/assignment1-basics/cs336_basics/train_lm/tinyStories_best.pt"
-dataset_path: "~/code/assignment1-basics/data/tinystories_train_encoded.txt"
+vocab_path: "gs://cs336-data/TinyStoriesV2-GPT4-train-10k.vocab"
+merges_path: "gs://cs336-data/TinyStoriesV2-GPT4-train-10k.merges"
+checkpoint: "gs://cs336-data/tinyStories_best.pt"
+dataset_path: "gs://cs336-data/tinystories_train_encoded.txt"
 
 max_new_tokens: 100
