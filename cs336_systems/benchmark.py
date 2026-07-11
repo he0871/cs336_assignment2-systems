@@ -10,7 +10,7 @@ import cs336_basics.optimizer as optimizer
 
 
 def load_config():
-    with open("cs336_basics/train_lm/hyconfig.yaml") as f:
+    with open("hyconfig.yaml") as f:
         return yaml.safe_load(f)
 
 
