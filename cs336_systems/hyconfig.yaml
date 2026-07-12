@@ -1,7 +1,7 @@
 learning_rate: 1e-3
 batch_size: 4
 context_length: 256
-device: "cpu"
+device: "cuda"
 load_size: 1000
 vocab_size: 10000 # 10k vocab size for tiny stories, 32k vocab size for openwebtext
 d_model: 512

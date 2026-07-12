@@ -81,8 +81,6 @@ def prepare_batch(dataset, config, device):
 
 def train_step(model, optimizer, dataset, config, device):
     x, y = prepare_batch(dataset, config, device)
-    print(f"using device: {device}")
-
 
     optimizer.zero_grad()
 
@@ -103,6 +101,8 @@ if __name__ == "__main__":
     config = load_config()
 
     model, optimizer, device = build_model(config)
+
+    print(f"using device: {device}")
 
     dataset = np.memmap(
         resolve_dataset_path(config["dataset_path"]),
