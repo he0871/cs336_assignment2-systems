@@ -8,6 +8,8 @@ import torch.nn.functional as F
 import cs336_basics.model as model
 import cs336_basics.optimizer as optimizer
 
+from torch.cuda import nvtx
+
 
 def load_config():
     with open("hyconfig.yaml") as f:
@@ -84,15 +86,23 @@ def train_step(model, optimizer, dataset, config, device):
 
     optimizer.zero_grad()
 
+    nvtx.range_push("Forward")
     logits = model(x)
+    
 
     loss = F.cross_entropy(
         logits.view(-1, config["vocab_size"]),
         y.view(-1),
     )
+    nvtx.range_pop()
 
+    nvtx.range_push("Backward")
     loss.backward()
+    nvtx.range_pop()
+    
+    nvtx.range_push("Optimizer")
     optimizer.step()
+    nvtx.range_pop()
 
     return loss.item()
 

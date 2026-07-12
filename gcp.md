@@ -70,4 +70,20 @@ uv run nsys profile --trace=cuda,cudnn,cublas,osrt,nvtx --pytorch=functions-trac
 shapes-nvtx --cudabacktrace=all --python-backtrace=cuda --gpu-metrics-devices=0 -- python
 benchmark.py
 
+gcloud compute  scp a2t4:/home/jingyuanhe/cs336_assignment2-systems/cs336_systems/report2.nsys-rep . --zone=us-east1-c
+
+
+uv run nsys profile \
+    --trace=cuda,cudnn,cublas,osrt,nvtx \
+    --pytorch=autograd-shapes-nvtx \
+    --cudabacktrace=all \
+    --python-backtrace=cuda \
+    -- python benchmark.py
+
+
+
+
+
+# Troubleshooting
+nvidia-smi
 
