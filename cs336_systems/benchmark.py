@@ -81,6 +81,8 @@ def prepare_batch(dataset, config, device):
 
 def train_step(model, optimizer, dataset, config, device):
     x, y = prepare_batch(dataset, config, device)
+    print(f"using device: {device}")
+
 
     optimizer.zero_grad()
 

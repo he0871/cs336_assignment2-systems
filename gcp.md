@@ -5,6 +5,10 @@ gcloud init
 gcloud storage cp ~/code/assignment1-basics/data/tinystories_train_encoded.txt gs://cs336-data/
 gcloud storage cp ~/code/assignment1-basics/cs336_basics/tokenizers/TinyStoriesV2-GPT4-train-10k.vocab gs://cs336-data/
 gcloud storage cp ~/code/assignment1-basics/cs336_basics/tokenizers/TinyStoriesV2-GPT4-train-10k.merges gs://cs336-data/
+gcloud storage cp ~/code/assignment1-basics/cs336_basics/train_lm/tinyStories_best.pt  gs://cs336-data/
+
+gcloud storage ls gs://cs336-data/  
+
 
 # create GPU VM
 ## find a zone support 
@@ -50,7 +54,7 @@ gcloud compute ssh a2t4 \
     --zone=us-east1-c
 
 # Download code
-https://github.com/he0871/cs336_assignment2-systems.git
+git clone https://github.com/he0871/cs336_assignment2-systems.git
 
 pip install uv
 
@@ -62,6 +66,8 @@ uv pip install google-cloud-storage
 uv run nsys profile -- python benchmark.py
 
 
-
+uv run nsys profile --trace=cuda,cudnn,cublas,osrt,nvtx --pytorch=functions-trace,autograd-
+shapes-nvtx --cudabacktrace=all --python-backtrace=cuda --gpu-metrics-devices=0 -- python
+benchmark.py
 
 
