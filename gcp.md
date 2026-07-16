@@ -66,9 +66,7 @@ uv pip install google-cloud-storage
 uv run nsys profile -- python benchmark.py
 
 
-uv run nsys profile --trace=cuda,cudnn,cublas,osrt,nvtx --pytorch=functions-trace,autograd-
-shapes-nvtx --cudabacktrace=all --python-backtrace=cuda --gpu-metrics-devices=0 -- python
-benchmark.py
+uv run nsys profile --trace=cuda,cudnn,cublas,osrt,nvtx --pytorch=functions-trace,autograd-shapes-nvtx --cudabacktrace=all --python-backtrace=cuda --gpu-metrics-devices=0 -- python benchmark.py
 
 gcloud compute  scp a2t4:/home/jingyuanhe/cs336_assignment2-systems/cs336_systems/report2.nsys-rep . --zone=us-east1-c
 
@@ -85,5 +83,28 @@ uv run nsys profile \
 
 
 # Troubleshooting
+
+uv run nsys profile --trace=cuda,cudnn,cublas,osrt,nvtx --pytorch=functions-trace,autograd-shapes-nvtx --cudabacktrace=all --python-backtrace=cuda --gpu-metrics-devices=0 -- python benchmark.py
+Illegal --gpu-metrics-devices argument: 0.
+Insufficient privilege, see https://developer.nvidia.com/ERR_NVGPUCTRPERM.
+Use the '--gpu-metrics-devices=help' switch to see the full list of values.
+
+usage: nsys profile [<args>] [application] [<application args>]
+Try 'nsys profile --help' for more information.
+jingyuanhe@a2t4:~/cs336_assignment2-systems$ uv run nsys profile --trace=cuda,cudnn,cublas,osrt,nvtx --pytorch=functions-trace,autograd-shapes-nvtx --cudabacktrace=all --python-backtrace=cuda --gpu-metrics-devices=help -- python benchmark.py
+GPU Metrics: None of the installed GPUs are supported:
+	Turing TU104 | Tesla T4 PCI[0000:00:04.0] - Insufficient privilege, see https://developer.nvidia.com/ERR_NVGPUCTRPERM
+See the user guide: https://docs.nvidia.com/nsight-systems/UserGuide/index.html#gpu-metri
+
+cat /proc/driver/nvidia/params | grep RmProfilingAdminOnly
+RmProfilingAdminOnly: 1
+
+## Enable it 
+echo 'options nvidia NVreg_RestrictProfilingToAdminUsers=0' \
+  | sudo tee /etc/modprobe.d/nvidia-profiling.conf
+
+sudo update-initramfs -u
+sudo reboot
+
 nvidia-smi
 
