@@ -66,7 +66,6 @@ uv pip install google-cloud-storage
 uv run nsys profile -- python benchmark.py
 
 
-uv run nsys profile --trace=cuda,cudnn,cublas,osrt,nvtx --pytorch=functions-trace,autograd-shapes-nvtx --cudabacktrace=all --python-backtrace=cuda --gpu-metrics-devices=0 -- python benchmark.py
 
 gcloud compute  scp a2t4:/home/jingyuanhe/cs336_assignment2-systems/cs336_systems/report2.nsys-rep . --zone=us-east1-c
 
@@ -76,6 +75,7 @@ uv run nsys profile \
     --pytorch=autograd-shapes-nvtx \
     --cudabacktrace=all \
     --python-backtrace=cuda \
+    --gpu-metrics-devices=0 \
     -- python benchmark.py
 
 
@@ -99,7 +99,7 @@ See the user guide: https://docs.nvidia.com/nsight-systems/UserGuide/index.html#
 cat /proc/driver/nvidia/params | grep RmProfilingAdminOnly
 RmProfilingAdminOnly: 1
 
-## Enable it 
+## Enable it
 echo 'options nvidia NVreg_RestrictProfilingToAdminUsers=0' \
   | sudo tee /etc/modprobe.d/nvidia-profiling.conf
 
