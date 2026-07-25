@@ -124,6 +124,7 @@ if __name__ == "__main__":
     for _ in range(config["warmup_steps"]):
         train_step(model, optimizer, dataset, config, device)
 
+    torch.cuda.memory._record_memory_history(max_entries=1000000)
     timer = timeit.Timer(
         lambda: train_step(
             model,
@@ -136,6 +137,9 @@ if __name__ == "__main__":
 
     repeat = 10
     times = timer.repeat(repeat=repeat, number=1)
+
+    torch.cuda.memory._dump_snapshot("memory_snapshot.pickle")
+    torch.cuda.memory._record_memory_history(enabled=None)
 
     print(f"Average: {sum(times)/repeat:.6f} sec")
     print(f"Min:     {min(times):.6f} sec")
