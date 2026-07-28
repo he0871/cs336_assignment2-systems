@@ -61,7 +61,9 @@ pip install uv
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 source ~/.bashrc
 
-uv run python
+# uv run python
+cd cs336_assignment2-systems/
+uv venv
 uv pip install google-cloud-storage
 uv run nsys profile -- python benchmark.py
 
