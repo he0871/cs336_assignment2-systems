@@ -25,7 +25,8 @@ def unpack_hook(t):
     print(f"Loading residual: {shape=}, {dtype=}, {grad_fn=}")
     return t
 
-ln = RMSNorm(x.shape[-1])
+#ln = RMSNorm(x.shape[-1])
+ln = torch.compile(RMSNorm(x.shape[-1]))
 with torch.autograd.graph.saved_tensors_hooks(pack_hook, unpack_hook):
     y = ln(x)
     y.sum().backward()
