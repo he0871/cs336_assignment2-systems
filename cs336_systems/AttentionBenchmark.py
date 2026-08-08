@@ -52,6 +52,6 @@ for d in D:
             memo_backward += memory_allocated
         print(f"Forward Time taken: {forward_time } seconds")
         print(f"Backward Time taken: {backward_time} seconds")
-        print(f"Memory allocated for forward: {memo_forward}")
-        print(f"Memory allocated for backward: {memo_backward}")
+        print(f"Memory allocated for forward: {memo_forward / 100}")
+        print(f"Memory allocated for backward: {memo_backward / 100}")
 
