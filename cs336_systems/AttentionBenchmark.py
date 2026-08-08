@@ -34,6 +34,7 @@ for d in D:
         mask = None
         for _ in range(100):
             y = compiled_attention(Q, K, V, mask)
+            # y = scaled_dot_product_attention(Q, K, V, mask)
             torch.cuda.synchronize()
             forward_end= time.perf_counter()
             forward_time += forward_end - curr
