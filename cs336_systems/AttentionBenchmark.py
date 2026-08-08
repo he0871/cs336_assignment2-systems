@@ -8,7 +8,7 @@ compiled_attention = torch.compile(scaled_dot_product_attention)
 
 # num_layers for this model is 32
 D = [16, 32, 64, 128]
-T = [256, 1024, 4096, 8192, 16384]
+T = [256, 1024, 4096, 8192]
 
 # warmup
 Q = torch.randn((8, 256, 16), requires_grad=True, device="cuda")
@@ -38,12 +38,16 @@ for d in D:
             torch.cuda.synchronize()
             forward_end= time.perf_counter()
             forward_time += forward_end - curr
+            memory_allocated = torch.cuda.memory_allocated()
+            print(f"Memory allocated before backward: {memory_allocated}")
             loss = y.sum()
             loss.backward()
             torch.cuda.synchronize()
             backward_end = time.perf_counter()
             backward_time += backward_end - forward_end
             curr = backward_end
+            memory_allocated = torch.cuda.memory_allocated()
+            print(f"Memory allocated after backward: {memory_allocated}")
         print(f"Forward Time taken: {forward_time } seconds")
         print(f"Backward Time taken: {backward_time} seconds")
 
