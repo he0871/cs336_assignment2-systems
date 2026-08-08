@@ -29,7 +29,7 @@ for d in D:
         V = torch.randn((8, t, d), requires_grad=True, device="cuda")
         mask = None
         for _ in range(100):
-            y = scaled_dot_product_attention(Q, K, V, mask)
+            y = torch.compile(scaled_dot_product_attention)(Q, K, V, mask)
             torch.cuda.synchronize()
             forward_end = time.perf_counter()
         print(f"Time taken: {forward_end - curr} seconds")
@@ -37,7 +37,7 @@ for d in D:
         
         for _ in range(100):
             loss = y.sum()
-            loss.backward(retain_graph=True)
+            torch.compile(loss.backward)(retain_graph=True)
             torch.cuda.synchronize()
             backward_end = time.perf_counter()
         print(f"Time taken: {backward_end - forward_end} seconds")
