@@ -24,6 +24,8 @@ curr = start
 
 forward_time = 0
 backward_time = 0
+memo_forward = 0
+memo_backward = 0
 
 for d in D:
     for t in T:
@@ -39,7 +41,7 @@ for d in D:
             forward_end= time.perf_counter()
             forward_time += forward_end - curr
             memory_allocated = torch.cuda.memory_allocated()
-            print(f"Memory allocated before backward: {memory_allocated}")
+            memo_forward += memory_allocated
             loss = y.sum()
             loss.backward()
             torch.cuda.synchronize()
@@ -47,8 +49,9 @@ for d in D:
             backward_time += backward_end - forward_end
             curr = backward_end
             memory_allocated = torch.cuda.memory_allocated()
-            print(f"Memory allocated after backward: {memory_allocated}")
+            memo_backward += memory_allocated
         print(f"Forward Time taken: {forward_time } seconds")
         print(f"Backward Time taken: {backward_time} seconds")
-
+        print(f"Memory allocated for forward: {memo_forward}")
+        print(f"Memory allocated for backward: {memo_backward}")
 
