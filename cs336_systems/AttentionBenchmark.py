@@ -3,6 +3,7 @@ from cs336_basics.model import scaled_dot_product_attention
 import time
 
 start = time.perf_counter()
+compiled_attention = torch.compile(scaled_dot_product_attention)
 
 
 # num_layers for this model is 32
@@ -15,7 +16,7 @@ K = torch.randn((8, 256, 16), requires_grad=True, device="cuda")
 V = torch.randn((8, 256, 16), requires_grad=True, device="cuda")
 mask = None
 for _ in range(10):
-    y = scaled_dot_product_attention(Q, K, V, mask)
+    y = compiled_attention(Q, K, V, mask)
     loss = y.sum()
     loss.backward()
 
@@ -29,18 +30,18 @@ for d in D:
         V = torch.randn((8, t, d), requires_grad=True, device="cuda")
         mask = None
         for _ in range(100):
-            y = torch.compile(scaled_dot_product_attention)(Q, K, V, mask)
+            y = compiled_attention(Q, K, V, mask)
             torch.cuda.synchronize()
             forward_end = time.perf_counter()
-        print(f"Time taken: {forward_end - curr} seconds")
+        print(f"ForwardTime taken: {forward_end - curr} seconds")
         print(f"Memory allocated: {torch.cuda.memory_allocated()}")
         
         for _ in range(100):
             loss = y.sum()
-            torch.compile(loss.backward)(retain_graph=True)
+            loss.backward(retain_graph=True)
             torch.cuda.synchronize()
             backward_end = time.perf_counter()
-        print(f"Time taken: {backward_end - forward_end} seconds")
+        print(f"Backward Time taken: {backward_end - forward_end} seconds")
         curr = backward_end
 
 
