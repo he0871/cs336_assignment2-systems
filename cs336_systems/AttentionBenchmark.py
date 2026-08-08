@@ -22,6 +22,9 @@ for _ in range(10):
 
 curr = start
 
+forward_time = 0
+backward_time = 0
+
 for d in D:
     for t in T:
         print(f"Running for d={d}, t={t}")
@@ -32,16 +35,15 @@ for d in D:
         for _ in range(100):
             y = compiled_attention(Q, K, V, mask)
             torch.cuda.synchronize()
-            forward_end = time.perf_counter()
-        print(f"ForwardTime taken: {forward_end - curr} seconds")
-        print(f"Memory allocated: {torch.cuda.memory_allocated()}")
-        
-        for _ in range(100):
+            forward_end= time.perf_counter()
+            forward_time += forward_end - curr
             loss = y.sum()
             loss.backward()
             torch.cuda.synchronize()
             backward_end = time.perf_counter()
-        print(f"Backward Time taken: {backward_end - forward_end} seconds")
-        curr = backward_end
+            backward_time += backward_end - forward_end
+            curr = backward_end
+        print(f"Forward Time taken: {forward_time } seconds")
+        print(f"Backward Time taken: {backward_time} seconds")
 
 
