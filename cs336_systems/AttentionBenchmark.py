@@ -38,7 +38,7 @@ for d in D:
         
         for _ in range(100):
             loss = y.sum()
-            loss.backward(retain_graph=True)
+            loss.backward()
             torch.cuda.synchronize()
             backward_end = time.perf_counter()
         print(f"Backward Time taken: {backward_end - forward_end} seconds")
