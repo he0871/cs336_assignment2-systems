@@ -20,26 +20,26 @@ for _ in range(10):
     loss.backward()
 
 curr = start
-with torch.autograd.graph.saved_tensors_hooks():
-    for d in D:
-        for t in T:
-            Q = torch.randn((8, t, d), requires_grad=True, device="cuda")
-            K = torch.randn((8, t, d), requires_grad=True, device="cuda")
-            V = torch.randn((8, t, d), requires_grad=True, device="cuda")
-            mask = None
-            for _ in range(100):
-                y = scaled_dot_product_attention(Q, K, V, mask)
-                torch.cuda.synchronize()
-                forward_end = time.perf_counter()
-            print(f"Time taken: {forward_end - curr} seconds")
-            print(f"Memory allocated: {torch.cuda.memory_allocated()}")
+
+for d in D:
+    for t in T:
+        Q = torch.randn((8, t, d), requires_grad=True, device="cuda")
+        K = torch.randn((8, t, d), requires_grad=True, device="cuda")
+        V = torch.randn((8, t, d), requires_grad=True, device="cuda")
+        mask = None
+        for _ in range(100):
+            y = scaled_dot_product_attention(Q, K, V, mask)
+            torch.cuda.synchronize()
+            forward_end = time.perf_counter()
+        print(f"Time taken: {forward_end - curr} seconds")
+        print(f"Memory allocated: {torch.cuda.memory_allocated()}")
         
-            for _ in range(100):
-                loss = y.sum()
-                loss.backward(retain_graph=True)
-                torch.cuda.synchronize()
-                backward_end = time.perf_counter()
-            print(f"Time taken: {backward_end - forward_end} seconds")
-            curr = backward_end
+        for _ in range(100):
+            loss = y.sum()
+            loss.backward(retain_graph=True)
+            torch.cuda.synchronize()
+            backward_end = time.perf_counter()
+        print(f"Time taken: {backward_end - forward_end} seconds")
+        curr = backward_end
 
 
