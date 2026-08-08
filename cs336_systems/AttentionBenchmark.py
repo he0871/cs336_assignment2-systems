@@ -23,6 +23,7 @@ curr = start
 
 for d in D:
     for t in T:
+        print(f"Running for d={d}, t={t}")
         Q = torch.randn((8, t, d), requires_grad=True, device="cuda")
         K = torch.randn((8, t, d), requires_grad=True, device="cuda")
         V = torch.randn((8, t, d), requires_grad=True, device="cuda")
