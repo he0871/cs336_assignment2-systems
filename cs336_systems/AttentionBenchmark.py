@@ -15,7 +15,7 @@ K = torch.randn((8, 256, 16), requires_grad=True, device="cuda")
 V = torch.randn((8, 256, 16), requires_grad=True, device="cuda")
 mask = None
 for _ in range(10):
-    y = scaled_dot_product_attention(Q, K, V, mask, device="cuda")
+    y = scaled_dot_product_attention(Q, K, V, mask)
     loss = y.sum()
     loss.backward()
 
@@ -28,7 +28,7 @@ with torch.autograd.graph.saved_tensors_hooks():
             V = torch.randn((8, t, d), requires_grad=True, device="cuda")
             mask = None
             for _ in range(100):
-                y = scaled_dot_product_attention(Q, K, V, mask, device="cuda")
+                y = scaled_dot_product_attention(Q, K, V, mask)
                 torch.cuda.synchronize()
                 forward_end = time.perf_counter()
             print(f"Time taken: {forward_end - curr} seconds")
