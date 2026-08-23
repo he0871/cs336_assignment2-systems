@@ -14,7 +14,8 @@ class FlashAttention2Func(torch.autograd.Function):
 
         d = Q.shape[-1]
         seq_len = Q.shape[-2]
-        num_keys = K.shape[-2]
+        num_keys = K.shape[-2] 
+        batch_size = Q.shape[0]
         br = max(16, seq_len // (4 * d))
         bc = 16
         q_chunk_pt = 0
@@ -30,13 +31,17 @@ class FlashAttention2Func(torch.autograd.Function):
         L_blocks = []
 
         # m, l, o = None, None, None
-        m_j = torch.zeros((br,))
-        prev_m = torch.zeros((br,))
-        prev_l = torch.zeros((br, 1))
+        
+        l_j = torch.zeros((br, 1))
+        o_j = torch.zeros((br, d))
+        m_j = torch.full((br, 1), float("-inf"))
+        
         prev_o = torch.zeros((br, d))
         for q_i in Q_blocks:
             #o_i = torch.zeros((br, d)) # [..., br, d]
-            k_chunk_pt = 0
+
+            m_j = torch.full((br, 1), float("-inf"))
+            prev_l = torch.zeros((br, 1))
 
             for i in range(len(K_blocks)):
                 k_j = K_blocks[i] # [... bc, d]
@@ -45,34 +50,24 @@ class FlashAttention2Func(torch.autograd.Function):
                 # print(f"K_transposed: {K_transposed.shape}, q_i: {q_i.shape}")
                 s_j = q_i @ K_transposed # [..., br, bc]
                 s_j = s_j / (d ** 0.5)
-                #print(f"s_j: {s_j.shape}")
-                #s_j = s_j.masked_fill(~is_causal, float('-inf'))
-                if k_chunk_pt == 0:
-                    m_j = s_j.max(dim=2, keepdim=True).values
-                    #print(f"first m_j: {m_j.shape}, s_j: {s_j.shape}")
-                    p_j = torch.exp(s_j - m_j) # [..., br, bc]
-                    l_j = torch.sum(p_j, dim=2, keepdim=True) # [... ,br, 1]
-                    #print(f"first l_j: {l_j.shape}")
-                    prev_l = l_j
-                    o_j = p_j @ v_j # [br, d]
-                    prev_o = o_j #[..., br, d]
-                else:
-                    prev_m = m_j
-                    m_j = torch.max(m_j, s_j.max(dim=2, keepdim=True).values)
-                    #print(f"prev_m: {prev_m.shape}, m_j: {m_j.shape}")
-                    p_j = torch.exp(s_j - m_j) # [..., br, bc]
-                    adjust = torch.exp(prev_m - m_j)  # [..., br, 1]
-                    #adjust = rearrange(adjust, "... br 1 -> ... br", br=br)
-                    #print(f"adjust: {adjust.shape}, prev_l: {prev_l.shape}, p_j: {p_j.shape}")
-                    l_j = adjust * prev_l + torch.sum(p_j, dim=2, keepdim=True) # [..., br, 1]
-                    #print(f"prev_l: {prev_l.shape}, l_j: {l_j.shape}")
-                    
-                    prev_l = l_j # [..., br, 1]
-                    #print(f"adjust: {adjust.shape}, prev_o: {prev_o.shape}, p_j: {p_j.shape}, v_j: {v_j.shape}")
-                    o_j = adjust * prev_o  + p_j @ v_j # [..., br, d]
-                    prev_o = o_j
-                    # print(f"o_j: {o_j.shape}")
-                k_chunk_pt += 1
+
+                prev_m = m_j
+                m_j = torch.max(prev_m, s_j.max(dim=2, keepdim=True).values)
+                
+                #print(f"prev_m: {prev_m.shape}, m_j: {m_j.shape}, s_j: {s_j.shape}")
+                p_j = torch.exp(s_j - m_j) # [..., br, bc]
+                adjust = torch.exp(prev_m - m_j)  # [..., br, 1]
+                #print(f"adjust: {adjust.shape}, prev_m: {prev_m.shape}, m_j: {m_j.shape}")
+                #adjust = rearrange(adjust, "... br 1 -> ... br", br=br)
+                #print(f"adjust: {adjust.shape}, prev_l: {prev_l.shape}, p_j: {p_j.shape}")
+                l_j = adjust * prev_l + torch.sum(p_j, dim=2, keepdim=True) # [..., br, 1]
+                #print(f"prev_l: {prev_l.shape}, l_j: {l_j.shape}")
+                
+                prev_l = l_j # [..., br, 1]
+                #print(f"adjust: {adjust.shape}, prev_o: {prev_o.shape}, p_j: {p_j.shape}, v_j: {v_j.shape}")
+                o_j = adjust * prev_o  + p_j @ v_j # [..., br, d]
+                prev_o = o_j
+
 
             o_i = o_j / l_j # [..., br, d]
             O_blocks.append(o_i)
