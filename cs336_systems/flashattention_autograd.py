@@ -1,7 +1,7 @@
 import torch
 from einops import rearrange, einsum
 from torch import Tensor
-from jaxtyping import Bool, Float, Int
+from jaxtyping import  Float
 
 class FlashAttention2Func(torch.autograd.Function):
        
