@@ -76,13 +76,13 @@ def flash_attention_kernel(
         s_j = tl.matmul(q_block, k_transposed)
         s_j = s_j / (D ** 0.5)
         prev_m = m_j
-        m_j = tl.max(prev_m, tl.max(s_j, dim=1, keepdim=True).values)
+        m_j = tl.maximum(prev_m, tl.max(s_j, axis=1, keep_dims=True))
 
         p_j = tl.exp(s_j - m_j)
 
         adjust = tl.exp(prev_m - m_j)
 
-        l_j = adjust * prev_l + tl.sum(p_j, dim=1, keepdim=True)
+        l_j = adjust * prev_l + tl.sum(p_j, axis=1, keep_dims=True)
 
         prev_l = l_j
 
