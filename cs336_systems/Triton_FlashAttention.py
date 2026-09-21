@@ -62,12 +62,12 @@ def flash_attention_kernel(
         order=(2, 1, 0),
     )
     q_block = tl.load(q_block_ptr, boundary_check=(0, 1), padding_option="zero")
-    m_j = tl.full((1, ROW_TILE_SIZE, 1), float("-inf"))
-    prev_l = tl.zeros((1, ROW_TILE_SIZE, 1))
-    prev_o = tl.zeros((1, ROW_TILE_SIZE, D))
-    o_i = tl.zeros((1, ROW_TILE_SIZE, D))
-    l_j = tl.zeros((1, ROW_TILE_SIZE, 1))
-    o_j = tl.zeros((1, ROW_TILE_SIZE, D))
+    m_j = tl.full((1, ROW_TILE_SIZE, 1), float("-inf"), dtype=tl.float32)
+    prev_l = tl.zeros((1, ROW_TILE_SIZE, 1), dtype=tl.float32)
+    prev_o = tl.zeros((1, ROW_TILE_SIZE, D), dtype=tl.float32)
+    o_i = tl.zeros((1, ROW_TILE_SIZE, D), dtype=tl.float32)
+    l_j = tl.zeros((1, ROW_TILE_SIZE, 1), dtype=tl.float32)
+    o_j = tl.zeros((1, ROW_TILE_SIZE, D), dtype=tl.float32)
     for i in range(tl.cdiv(NUM_KEYS, COLUMN_TILE_SIZE)):
         
         k_block = tl.load(k_block_ptr, boundary_check=(0, 1), padding_option="zero")

@@ -3,7 +3,7 @@ import triton
 from einops import rearrange, einsum
 from torch import Tensor
 from jaxtyping import  Float
-from Triton_FlashAttention import flash_attention_kernel
+from cs336_systems.Triton_FlashAttention import flash_attention_kernel
 
 class TritonFlashAttention2Func(torch.autograd.Function):
        @staticmethod
