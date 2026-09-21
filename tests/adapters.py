@@ -1,5 +1,6 @@
 from __future__ import annotations
 from cs336_systems.flashattention_autograd import FlashAttention2Func
+from cs336_systems.Triton_FA_Autograd import TritonFlashAttention2Func
 
 import torch
 
@@ -31,7 +32,7 @@ def get_flashattention_autograd_function_triton() -> type:
         A class object (not an instance of the class)
     """
     # For example: return MyTritonFlashAttentionAutogradFunctionClass
-    raise NotImplementedError
+    raise TritonFlashAttention2Func
 
 
 def get_ddp(module: torch.nn.Module) -> torch.nn.Module:

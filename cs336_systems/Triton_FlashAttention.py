@@ -12,9 +12,9 @@ def flash_attention_kernel(
         v_stride, v_stride_dim,
         o_stride, o_stride_dim,
         l_stride, l_stride_dim,
-        NUM_QUERIES: Int,
-        NUM_KEYS: Int,
-        D: Int,
+        NUM_QUERIES: tl.constexpr,
+        NUM_KEYS: tl.constexpr,
+        D: tl.constexpr,
         ROW_TILE_SIZE: tl.constexpr, #Br
         COLUMN_TILE_SIZE: tl.constexpr, #Bc
         BATCH_SIZE: tl.constexpr,
@@ -62,27 +62,27 @@ def flash_attention_kernel(
         order=(2, 1, 0),
     )
     q_block = tl.load(q_block_ptr, boundary_check=(0, 1), padding_option="zero")
-    m_j = tl.full((ROW_TILE_SIZE, 1), float("-inf"))
-    prev_l = tl.zeros((ROW_TILE_SIZE, 1))
-    prev_o = tl.zeros((ROW_TILE_SIZE, D))
-    o_i = tl.zeros((ROW_TILE_SIZE, D))
-    l_j = tl.zeros((ROW_TILE_SIZE, 1))
-    o_j = tl.zeros((ROW_TILE_SIZE, D))
+    m_j = tl.full((1, ROW_TILE_SIZE, 1), float("-inf"))
+    prev_l = tl.zeros((1, ROW_TILE_SIZE, 1))
+    prev_o = tl.zeros((1, ROW_TILE_SIZE, D))
+    o_i = tl.zeros((1, ROW_TILE_SIZE, D))
+    l_j = tl.zeros((1, ROW_TILE_SIZE, 1))
+    o_j = tl.zeros((1, ROW_TILE_SIZE, D))
     for i in range(tl.cdiv(NUM_KEYS, COLUMN_TILE_SIZE)):
         
         k_block = tl.load(k_block_ptr, boundary_check=(0, 1), padding_option="zero")
         v_block = tl.load(v_block_ptr, boundary_check=(0, 1), padding_option="zero")
-        k_transposed = tl.transpose(k_block, (1, 0))
+        k_transposed = tl.trans(k_block, (0,2, 1))
         s_j = tl.matmul(q_block, k_transposed)
         s_j = s_j / (D ** 0.5)
         prev_m = m_j
-        m_j = tl.maximum(prev_m, tl.max(s_j, axis=1, keep_dims=True))
+        m_j = tl.maximum(prev_m, tl.max(s_j, axis=2, keep_dims=True))
 
         p_j = tl.exp(s_j - m_j)
 
         adjust = tl.exp(prev_m - m_j)
 
-        l_j = adjust * prev_l + tl.sum(p_j, axis=1, keep_dims=True)
+        l_j = adjust * prev_l + tl.sum(p_j, axis=2, keep_dims=True)
 
         prev_l = l_j
 

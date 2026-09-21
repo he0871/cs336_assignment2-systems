@@ -5,7 +5,7 @@ from torch import Tensor
 from jaxtyping import  Float
 from Triton_FlashAttention import flash_attention_kernel
 
-class FlashAttention2Func(torch.autograd.Function):
+class TritonFlashAttention2Func(torch.autograd.Function):
        @staticmethod
        def forward(ctx,
         Q: Float[Tensor, "... queries d"], 
@@ -51,6 +51,6 @@ class FlashAttention2Func(torch.autograd.Function):
             ROW_TILE_SIZE, COLUMN_TILE_SIZE,
             BATCH_SIZE,
         )
-
+        tl = tl.squeeze(-1)
         ctx.save_for_backward(Q, K, V,tl)
         return output
