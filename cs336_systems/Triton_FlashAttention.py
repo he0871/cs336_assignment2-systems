@@ -76,7 +76,7 @@ def flash_attention_kernel(
         s_j = tl.dot(q_block, k_transposed)
         s_j = s_j / (D ** 0.5)
         prev_m = m_j
-        m_j = tl.dot(prev_m, tl.max(s_j, axis=2, keep_dims=True))
+        m_j = tl.maximum(prev_m, tl.max(s_j, axis=2, keep_dims=True))
 
         p_j = tl.exp(s_j - m_j)
 
