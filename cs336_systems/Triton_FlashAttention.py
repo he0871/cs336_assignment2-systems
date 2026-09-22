@@ -86,7 +86,8 @@ def flash_attention_kernel(
 
         prev_l = l_j
 
-        o_j = adjust * prev_o + p_j @ v_block
+        # o_j = adjust * prev_o + p_j @ v_block
+        o_j = adjust * prev_o + tl.dot(p_j, v_block)
         prev_o = o_j
 
         k_block_ptr = k_block_ptr.advance((0,COLUMN_TILE_SIZE, 0))
