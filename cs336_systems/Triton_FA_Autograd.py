@@ -31,8 +31,8 @@ class TritonFlashAttention2Func(torch.autograd.Function):
         l_stride_dim = 1
      
 
-        output = torch.empty((NUM_QUERIES, D), device="cuda")
-        tl = torch.zeros((NUM_QUERIES, 1), device="cuda")
+        output = torch.empty((BATCH_SIZE, NUM_QUERIES, D), device="cuda")
+        tl = torch.zeros((BATCH_SIZE, NUM_QUERIES, 1), device="cuda")
 
         #assert len(Q.shape) == 2, "Q must be a 2D tensor"
 
