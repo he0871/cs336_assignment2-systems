@@ -54,3 +54,7 @@ class TritonFlashAttention2Func(torch.autograd.Function):
         tl = tl.squeeze(-1)
         ctx.save_for_backward(Q, K, V,tl)
         return output
+
+        @staticmethod
+        def backward(ctx, grad_output): 
+            

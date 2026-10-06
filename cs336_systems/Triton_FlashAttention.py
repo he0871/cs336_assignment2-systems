@@ -98,4 +98,92 @@ def flash_attention_kernel(
     tl.store(o_block_ptr, o_i, boundary_check=(0, ))
     tl.store(l_block_ptr, l_i, boundary_check=(0, ))
 
- 
+    @triton.jit
+    def flash_attention_backward_kernel(
+        q_ptr, k_ptr, v_ptr, o_ptr, l_ptr, grad_output_ptr,
+        grad_q_ptr, grad_k_ptr, grad_v_ptr,
+        q_stride, q_stride_dim,
+        k_stride, k_stride_dim,
+        v_stride, v_stride_dim,
+        grad_q_stride, grad_q_stride_dim,
+        grad_k_stride, grad_k_stride_dim,
+        grad_v_stride, grad_v_stride_dim,
+        NUM_QUERIES: tl.constexpr,
+        NUM_KEYS: tl.constexpr,
+        D: tl.constexpr,
+        ROW_TILE_SIZE: tl.constexpr, #Br
+        COLUMN_TILE_SIZE: tl.constexpr, #Bc
+        BATCH_SIZE: tl.constexpr,
+        ):
+        row_tile_idx = tl.program_id(0)
+        n_row_tiles = tl.num_programs(0)
+
+        # Input
+        grad_output_block_ptr = tl.make_block_ptr(  
+            grad_output_ptr,
+            shape=(BATCH_SIZE, NUM_QUERIES, D),
+            strides=(NUM_QUERIES * grad_output_stride, grad_output_stride, grad_output_stride_dim),
+            offsets=(batch, row_tile_idx * ROW_TILE_SIZE, 0),
+            block_shape=(1, ROW_TILE_SIZE, D),
+            order=(2, 1, 0),
+        )
+        grad_q_block_ptr = tl.make_block_ptr(
+        grad_q_ptr,
+        shape=(BATCH_SIZE, NUM_QUERIES, D),
+        strides=(NUM_QUERIES * q_stride,q_stride, q_stride_dim), # Strides are distances between elements in the block
+        offsets=(batch, row_tile_idx * ROW_TILE_SIZE, 0), 
+        block_shape=(1, ROW_TILE_SIZE, D),
+        order=(2,1, 0),
+        )
+        grad_k_block_ptr = tl.make_block_ptr(
+        grad_k_ptr,
+        shape=(BATCH_SIZE, NUM_KEYS, D),
+        strides=(NUM_KEYS * k_stride,k_stride, k_stride_dim),
+        offsets=(batch,0, 0),
+        block_shape=(1, COLUMN_TILE_SIZE, D),
+        order=(2, 1, 0),
+        )
+        grad_v_block_ptr = tl.make_block_ptr(
+            grad_v_ptr,
+            shape=(BATCH_SIZE, NUM_KEYS, D),
+            strides=(NUM_KEYS * grad_v_stride, grad_v_stride, grad_v_stride_dim),
+            offsets=(batch, 0, 0),
+            block_shape=(1, COLUMN_TILE_SIZE, D),
+            order=(2, 1, 0),
+        )
+        q_block_ptr = tl.make_block_ptr(
+        q_ptr,
+        shape=(BATCH_SIZE, NUM_QUERIES, D),
+        strides=(NUM_QUERIES * q_stride,q_stride, q_stride_dim), # Strides are distances between elements in the block
+        offsets=(batch, q_tile * ROW_TILE_SIZE, 0), 
+        block_shape=(1, ROW_TILE_SIZE, D),
+        order=(2,1, 0),
+         )
+        k_block_ptr = tl.make_block_ptr(
+            k_ptr,
+            shape=(BATCH_SIZE, NUM_KEYS, D),
+            strides=(NUM_KEYS * grad_k_stride, grad_k_stride, grad_k_stride_dim),
+            offsets=(batch,0, 0),
+            block_shape=(1, COLUMN_TILE_SIZE, D),
+            order=(2, 1, 0),
+        )
+        v_block_ptr = tl.make_block_ptr(
+            v_ptr,
+            shape=(BATCH_SIZE, NUM_KEYS, D),
+            strides=(NUM_KEYS * grad_v_stride, grad_v_stride, grad_v_stride_dim),
+            offsets=(batch, 0, 0),
+            block_shape=(1, COLUMN_TILE_SIZE, D),
+            order=(2, 1, 0),
+        )
+        g_block = tl.load(grad_output_block_ptr, boundary_check=(0, 1), padding_option="zero")
+
+        for i in range(tl.cdiv(NUM_KEYS, COLUMN_TILE_SIZE)):
+            l_block = tl.load(l_block_ptr, boundary_check=(0, 1), padding_option="zero")
+            q_block = tl.load(q_block_ptr, boundary_check=(0, 1), padding_option="zero")
+            k_block = tl.load(k_block_ptr, boundary_check=(0, 1), padding_option="zero")
+
+            s_i = tl.dot(q_block, k_block)
+            s_i = s_i / (D ** 0.5)
+            p_i = tl.exp(s_i - l_block)
+            p_i_transposed = tl.trans(p_i, (0,2, 1))
+            d_v_i = tl.dot(p_i_transposed, g_block)
