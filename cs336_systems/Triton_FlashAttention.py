@@ -108,6 +108,7 @@ def flash_attention_backward_kernel(
         k_stride, k_stride_dim,
         v_stride, v_stride_dim,
         l_stride, l_stride_dim,
+        o_stride, o_stride_dim,
         grad_output_stride, grad_output_stride_dim,
         grad_q_stride, grad_q_stride_dim,
         grad_k_stride, grad_k_stride_dim,
@@ -142,7 +143,7 @@ def flash_attention_backward_kernel(
     grad_k_block_ptr = tl.make_block_ptr(
         grad_k_ptr,
         shape=(BATCH_SIZE, NUM_KEYS, D),
-        strides=(NUM_KEYS * grad_k_stride,grad_k_stride, k_stride_dim),
+        strides=(NUM_KEYS * grad_k_stride,grad_k_stride, grad_k_stride_dim),
         offsets=(batch,0, 0),
         block_shape=(1, COLUMN_TILE_SIZE, D),
         order=(2, 1, 0),
@@ -166,7 +167,7 @@ def flash_attention_backward_kernel(
     k_block_ptr = tl.make_block_ptr(
         k_ptr,
         shape=(BATCH_SIZE, NUM_KEYS, D),
-        strides=(NUM_KEYS * grad_k_stride, grad_k_stride, grad_k_stride_dim),
+        strides=(NUM_KEYS * k_stride, k_stride, k_stride_dim),
         offsets=(batch,0, 0),
         block_shape=(1, COLUMN_TILE_SIZE, D),
         order=(2, 1, 0),
@@ -187,6 +188,14 @@ def flash_attention_backward_kernel(
         block_shape=(1, ROW_TILE_SIZE, 1),
         order=(2, 1, 0),
     )
+    o_block_ptr = tl.make_block_ptr(
+        o_ptr,
+        shape=(BATCH_SIZE, NUM_QUERIES, D),
+        strides=(NUM_QUERIES * o_stride, o_stride, o_stride_dim),
+        offsets=(batch, q_tile * ROW_TILE_SIZE, 0),
+        block_shape=(1, ROW_TILE_SIZE, D),
+        order=(2, 1, 0),
+    )
     g_block = tl.load(grad_output_block_ptr, boundary_check=(0, 1), padding_option="zero")
 
 
@@ -195,6 +204,7 @@ def flash_attention_backward_kernel(
         q_block = tl.load(q_block_ptr, boundary_check=(0, 1), padding_option="zero")
         k_block = tl.load(k_block_ptr, boundary_check=(0, 1), padding_option="zero")
         v_block = tl.load(v_block_ptr, boundary_check=(0, 1), padding_option="zero")    
+        o_block = tl.load(o_block_ptr, boundary_check=(0, 1), padding_option="zero")
 
         k_block_transposed = tl.trans(k_block, (0,2, 1))
         s_i = tl.dot(q_block, k_block_transposed)
@@ -203,9 +213,12 @@ def flash_attention_backward_kernel(
         p_i_transposed = tl.trans(p_i, (0,2, 1))
 
         d_v_i = tl.dot(p_i_transposed, g_block)
+        tl.store(grad_v_block_ptr, d_v_i, boundary_check=(0, ))
+
         v_transposed = tl.trans(v_block, (0,2, 1))
         d_p_i = tl.dot(g_block, v_transposed)
-        d_i = tl.sum(p_i * d_p_i, axis=2, keep_dims=True)
+        # shape of o_block * g_block is (1, ROW_TILE_SIZE, D)
+        d_i = tl.sum(o_block * g_block, axis=2, keep_dims=True)
         d_s_i = p_i * (d_p_i - d_i)
         d_q_i = tl.dot(d_s_i, k_block)
         d_k_i = tl.dot(d_s_i, q_block)
@@ -218,9 +231,7 @@ def flash_attention_backward_kernel(
         v_block_ptr = v_block_ptr.advance((0,COLUMN_TILE_SIZE, 0))
         l_block_ptr = l_block_ptr.advance((0,ROW_TILE_SIZE, 0))
 
-    tl.store(grad_q_block_ptr, d_q_i, boundary_check=(0, ))
-    tl.store(grad_k_block_ptr, d_k_i, boundary_check=(0, ))
-    tl.store(grad_v_block_ptr, d_v_i, boundary_check=(0, ))
+
 
 
 
