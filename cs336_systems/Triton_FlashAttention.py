@@ -122,6 +122,8 @@ def flash_attention_backward_kernel(
 ):
     q_tile = tl.program_id(0)
     batch = tl.program_id(1)
+    curr_grad_k_ptr = grad_k_ptr + batch * NUM_KEYS * D
+    curr_grad_v_ptr = grad_v_ptr + batch * NUM_KEYS * D
 
     # Input
     grad_output_block_ptr = tl.make_block_ptr(  
@@ -216,7 +218,6 @@ def flash_attention_backward_kernel(
         p_i_transposed = tl.trans(p_i, (0,2, 1))
 
         d_v_i = tl.dot(p_i_transposed, g_block)
-        tl.store(grad_v_block_ptr, d_v_i, boundary_check=(0, ))
 
         v_transposed = tl.trans(v_block, (0,2, 1))
         d_p_i = tl.dot(g_block, v_transposed)
@@ -225,10 +226,13 @@ def flash_attention_backward_kernel(
         d_s_i = p_i * (d_p_i - d_i) #(1, br, bc)
         d_q_i = tl.dot(d_s_i, k_block ) / (D ** 0.5)
         d_s_i_transposed = tl.trans(d_s_i, (0,2, 1))
-        d_k_i = tl.dot(d_s_i_transposed, q_block ) / (D ** 0.5)
-        offset_column = i * COLUMN_TILE_SIZE + tl.arange(0, COLUMN_TILE_SIZE)
-        tl.atomic_add(grad_k_ptr + offset_column, d_k_i)
-        tl.atomic_add(grad_v_ptr + offset_column, d_v_i)
+        d_k_i = tl.dot(d_s_i_transposed, q_block ) / (D ** 0.5) # (1, bc, D)
+        # update grad_k_ptr and grad_v_ptr atomically
+        offset_column = i * COLUMN_TILE_SIZE + tl.arange(0, COLUMN_TILE_SIZE) # (COLUMN_TILE_SIZE,)
+        grad_k_i_ptr = curr_grad_k_ptr + offset_column[:,None] * grad_k_stride + tl.arange(0, D)[None, :] #(COLUMN_TILE_SIZE, D)
+        grad_v_i_ptr = curr_grad_v_ptr + offset_column[:,None] * grad_v_stride + tl.arange(0, D)[None, :] #(COLUMN_TILE_SIZE, D)
+        tl.atomic_add(grad_k_i_ptr[None,:], d_k_i)
+        tl.atomic_add(grad_v_i_ptr[None,:], d_v_i)
         grad_q += d_q_i 
 
         # move pointers
@@ -245,7 +249,7 @@ def flash_attention_backward_kernel(
 
 
 # references:
-https://github.com/onnxsim/onnxsim/blob/0f76c951ebb16024ee40bbecdd7f8b36500072aa/onnxsim/_triton_w4a16.py#L96
+# https://github.com/onnxsim/onnxsim/blob/0f76c951ebb16024ee40bbecdd7f8b36500072aa/onnxsim/_triton_w4a16.py#L96
 
 
 
