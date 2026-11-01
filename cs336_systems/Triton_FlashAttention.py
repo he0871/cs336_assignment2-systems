@@ -144,7 +144,7 @@ def flash_attention_backward_kernel(
         grad_k_ptr,
         shape=(BATCH_SIZE, NUM_KEYS, D),
         strides=(NUM_KEYS * grad_k_stride,grad_k_stride, grad_k_stride_dim),
-        offsets=(batch,0, 0),
+        offsets=(batch, 0, 0),
         block_shape=(1, COLUMN_TILE_SIZE, D),
         order=(2, 1, 0),
     )
@@ -197,14 +197,17 @@ def flash_attention_backward_kernel(
         order=(2, 1, 0),
     )
     g_block = tl.load(grad_output_block_ptr, boundary_check=(0, 1), padding_option="zero")
-
+    q_block = tl.load(q_block_ptr, boundary_check=(0, 1), padding_option="zero")
+    o_block = tl.load(o_block_ptr, boundary_check=(0, 1), padding_option="zero")
+    l_block = tl.load(l_block_ptr, boundary_check=(0, 1), padding_option="zero")
+    
+    grad_q = tl.zeros((1, ROW_TILE_SIZE, D), dtype=tl.float32)
 
     for i in range(tl.cdiv(NUM_KEYS, COLUMN_TILE_SIZE)):
-        l_block = tl.load(l_block_ptr, boundary_check=(0, 1), padding_option="zero")
-        q_block = tl.load(q_block_ptr, boundary_check=(0, 1), padding_option="zero")
+        
         k_block = tl.load(k_block_ptr, boundary_check=(0, 1), padding_option="zero")
         v_block = tl.load(v_block_ptr, boundary_check=(0, 1), padding_option="zero")    
-        o_block = tl.load(o_block_ptr, boundary_check=(0, 1), padding_option="zero")
+     
 
         k_block_transposed = tl.trans(k_block, (0,2, 1))
         s_i = tl.dot(q_block, k_block_transposed)
@@ -219,19 +222,30 @@ def flash_attention_backward_kernel(
         d_p_i = tl.dot(g_block, v_transposed)
         # shape of o_block * g_block is (1, ROW_TILE_SIZE, D)
         d_i = tl.sum(o_block * g_block, axis=2, keep_dims=True)
-        d_s_i = p_i * (d_p_i - d_i)
-        d_q_i = tl.dot(d_s_i, k_block)
-        d_k_i = tl.dot(d_s_i, q_block)
+        d_s_i = p_i * (d_p_i - d_i) #(1, br, bc)
+        d_q_i = tl.dot(d_s_i, k_block ) / (D ** 0.5)
+        d_s_i_transposed = tl.trans(d_s_i, (0,2, 1))
+        d_k_i = tl.dot(d_s_i_transposed, q_block ) / (D ** 0.5)
+        offset_column = i * COLUMN_TILE_SIZE + tl.arange(0, COLUMN_TILE_SIZE)
+        tl.atomic_add(grad_k_ptr + offset_column, d_k_i)
+        tl.atomic_add(grad_v_ptr + offset_column, d_v_i)
+        grad_q += d_q_i 
 
         # move pointers
         grad_k_block_ptr = grad_k_block_ptr.advance((0,COLUMN_TILE_SIZE, 0))
         grad_v_block_ptr = grad_v_block_ptr.advance((0,COLUMN_TILE_SIZE, 0))
-        q_block_ptr = q_block_ptr.advance((0,ROW_TILE_SIZE, 0))
         k_block_ptr = k_block_ptr.advance((0,COLUMN_TILE_SIZE, 0))
         v_block_ptr = v_block_ptr.advance((0,COLUMN_TILE_SIZE, 0))
-        l_block_ptr = l_block_ptr.advance((0,ROW_TILE_SIZE, 0))
+
+    tl.store(grad_q_block_ptr, grad_q, boundary_check=(0, ))
+    tl.store(grad_output_block_ptr, g_block, boundary_check=(0, ))
 
 
+
+
+
+# references:
+https://github.com/onnxsim/onnxsim/blob/0f76c951ebb16024ee40bbecdd7f8b36500072aa/onnxsim/_triton_w4a16.py#L96
 
 
 
