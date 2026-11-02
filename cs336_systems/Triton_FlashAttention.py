@@ -229,10 +229,11 @@ def flash_attention_backward_kernel(
         d_k_i = tl.dot(d_s_i_transposed, q_block ) / (D ** 0.5) # (1, bc, D)
         # update grad_k_ptr and grad_v_ptr atomically
         offset_column = i * COLUMN_TILE_SIZE + tl.arange(0, COLUMN_TILE_SIZE) # (COLUMN_TILE_SIZE,)
+        column_mask = offset_column[:,None] < NUM_KEYS
         grad_k_i_ptr = curr_grad_k_ptr + offset_column[:,None] * grad_k_stride + tl.arange(0, D)[None, :] #(COLUMN_TILE_SIZE, D)
         grad_v_i_ptr = curr_grad_v_ptr + offset_column[:,None] * grad_v_stride + tl.arange(0, D)[None, :] #(COLUMN_TILE_SIZE, D)
-        tl.atomic_add(grad_k_i_ptr[None,:], d_k_i)
-        tl.atomic_add(grad_v_i_ptr[None,:], d_v_i)
+        tl.atomic_add(grad_k_i_ptr[None,:], d_k_i, mask=column_mask)
+        tl.atomic_add(grad_v_i_ptr[None,:], d_v_i, mask=column_mask)
         grad_q += d_q_i 
 
         # move pointers
