@@ -142,22 +142,6 @@ def flash_attention_backward_kernel(
         block_shape=(1, ROW_TILE_SIZE, D),
         order=(2,1, 0),
     )
-    grad_k_block_ptr = tl.make_block_ptr(
-        grad_k_ptr,
-        shape=(BATCH_SIZE, NUM_KEYS, D),
-        strides=(NUM_KEYS * grad_k_stride,grad_k_stride, grad_k_stride_dim),
-        offsets=(batch, 0, 0),
-        block_shape=(1, COLUMN_TILE_SIZE, D),
-        order=(2, 1, 0),
-    )
-    grad_v_block_ptr = tl.make_block_ptr(
-        grad_v_ptr,
-        shape=(BATCH_SIZE, NUM_KEYS, D),
-        strides=(NUM_KEYS * grad_v_stride, grad_v_stride, grad_v_stride_dim),
-        offsets=(batch, 0, 0),
-        block_shape=(1, COLUMN_TILE_SIZE, D),
-        order=(2, 1, 0),
-    )
     q_block_ptr = tl.make_block_ptr(
         q_ptr,
         shape=(BATCH_SIZE, NUM_QUERIES, D),
@@ -237,13 +221,10 @@ def flash_attention_backward_kernel(
         grad_q += d_q_i 
 
         # move pointers
-        grad_k_block_ptr = grad_k_block_ptr.advance((0,COLUMN_TILE_SIZE, 0))
-        grad_v_block_ptr = grad_v_block_ptr.advance((0,COLUMN_TILE_SIZE, 0))
         k_block_ptr = k_block_ptr.advance((0,COLUMN_TILE_SIZE, 0))
         v_block_ptr = v_block_ptr.advance((0,COLUMN_TILE_SIZE, 0))
 
-    tl.store(grad_q_block_ptr, grad_q, boundary_check=(0, ))
-    tl.store(grad_output_block_ptr, g_block, boundary_check=(0, ))
+    tl.store(grad_q_block_ptr, grad_q, boundary_check=(0, 1))
 
 
 
