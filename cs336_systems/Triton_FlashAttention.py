@@ -204,11 +204,17 @@ def flash_attention_backward_kernel(
         
         k_block = tl.load(k_block_ptr, boundary_check=(0, 1), padding_option="zero")
         v_block = tl.load(v_block_ptr, boundary_check=(0, 1), padding_option="zero")    
+
+        row_mask = tl.arange(0, ROW_TILE_SIZE) + q_tile * ROW_TILE_SIZE
+        column_mask = tl.arange(0, COLUMN_TILE_SIZE) + i * COLUMN_TILE_SIZE 
+        casual_mask = column_mask[None, None, :] <= row_mask[None, :, None]
      
 
         k_block_transposed = tl.trans(k_block, (0,2, 1))
         s_i = tl.dot(q_block, k_block_transposed)
         s_i = s_i / (D ** 0.5)
+        if is_causal:
+            s_i = tl.where(casual_mask, s_i, float("-inf"))
         p_i = tl.exp(s_i - l_block)
         p_i_transposed = tl.trans(p_i, (0,2, 1))
 
