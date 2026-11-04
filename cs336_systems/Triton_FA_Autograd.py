@@ -53,22 +53,20 @@ class TritonFlashAttention2Func(torch.autograd.Function):
             BATCH_SIZE,
         )
         tl = tl.squeeze(-1)
-        ctx.save_for_backward(Q, K, V,tl)
+        ctx.save_for_backward(Q, K, V,tl,output)
         return output
 
     @staticmethod
     def backward(ctx,
         grad_output: Float[Tensor, "... queries d"],
-        grad_q: Float[Tensor, "... queries d"],
-        grad_k: Float[Tensor, "... keys d"],
-        grad_v: Float[Tensor, "... keys d"],
         is_causal: bool = False):
 
         Q = ctx.saved_tensors[0]
         K = ctx.saved_tensors[1]
         V = ctx.saved_tensors[2]
         tl = ctx.saved_tensors[3]
-
+        output = ctx.saved_tensors[4]
+        
         D = Q.shape[-1]
         NUM_QUERIES = Q.shape[-2]
         NUM_KEYS = K.shape[-2]
@@ -87,7 +85,9 @@ class TritonFlashAttention2Func(torch.autograd.Function):
         l_stride = 1
         l_stride_dim = 1
 
-        
+        grad_q = torch.empty((BATCH_SIZE, NUM_QUERIES, D), device="cuda")
+        grad_k = torch.empty((BATCH_SIZE, NUM_KEYS, D), device="cuda")
+        grad_v = torch.empty((BATCH_SIZE, NUM_KEYS, D), device="cuda")
 
         flash_attention_backward_kernel[(triton.cdiv(NUM_QUERIES,ROW_TILE_SIZE), BATCH_SIZE)](
             Q.contiguous().view(-1, D),
