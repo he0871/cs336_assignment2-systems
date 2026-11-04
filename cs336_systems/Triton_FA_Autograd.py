@@ -54,20 +54,20 @@ class TritonFlashAttention2Func(torch.autograd.Function):
             is_causal,
         )
         tl = tl.squeeze(-1)
-        ctx.save_for_backward(Q, K, V,tl,output)
+        ctx.save_for_backward(Q, K, V,tl,output, is_causal)
         return output
 
     @staticmethod
     def backward(ctx,
-        grad_output: Float[Tensor, "... queries d"],
-        is_causal=False):
+        grad_output: Float[Tensor, "... queries d"]):
 
         Q = ctx.saved_tensors[0]
         K = ctx.saved_tensors[1]
         V = ctx.saved_tensors[2]
         tl = ctx.saved_tensors[3]
         output = ctx.saved_tensors[4]
-        
+        is_causal = ctx.saved_tensors[5]
+
         D = Q.shape[-1]
         NUM_QUERIES = Q.shape[-2]
         NUM_KEYS = K.shape[-2]
