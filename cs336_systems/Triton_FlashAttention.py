@@ -18,7 +18,7 @@ def flash_attention_kernel(
         ROW_TILE_SIZE: tl.constexpr, #Br
         COLUMN_TILE_SIZE: tl.constexpr, #Bc
         BATCH_SIZE: tl.constexpr,
-        is_causal: bool,
+        is_causal,
 ):
     q_tile = tl.program_id(0)
     batch = tl.program_id(1)
@@ -129,7 +129,7 @@ def flash_attention_backward_kernel(
         ROW_TILE_SIZE: tl.constexpr, #Br
         COLUMN_TILE_SIZE: tl.constexpr, #Bc
         BATCH_SIZE: tl.constexpr,
-        is_causal: bool,
+        is_causal,
 ):
     q_tile = tl.program_id(0)
     batch = tl.program_id(1)
