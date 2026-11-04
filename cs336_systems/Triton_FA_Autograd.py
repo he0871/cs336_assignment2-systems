@@ -6,9 +6,9 @@ from jaxtyping import  Float
 from cs336_systems.Triton_FlashAttention import flash_attention_kernel, flash_attention_backward_kernel
 
 class TritonFlashAttention2Func(torch.autograd.Function):
-       @staticmethod
-       def forward(ctx,
-        Q: Float[Tensor, "... queries d"], 
+    @staticmethod
+    def forward(ctx,
+    Q: Float[Tensor, "... queries d"], 
         K: Float[Tensor, "... keys d"], 
         V: Float[Tensor, "... keys d"], 
         is_causal=False):
@@ -56,36 +56,36 @@ class TritonFlashAttention2Func(torch.autograd.Function):
         ctx.save_for_backward(Q, K, V,tl)
         return output
 
-        @staticmethod
-        def backward(ctx,
+    @staticmethod
+    def backward(ctx,
         grad_output: Float[Tensor, "... queries d"],
         grad_q: Float[Tensor, "... queries d"],
         grad_k: Float[Tensor, "... keys d"],
         grad_v: Float[Tensor, "... keys d"],
         is_causal: bool = False):
 
-            Q = ctx.saved_tensors[0]
-            K = ctx.saved_tensors[1]
-            V = ctx.saved_tensors[2]
-            tl = ctx.saved_tensors[3]
+        Q = ctx.saved_tensors[0]
+        K = ctx.saved_tensors[1]
+        V = ctx.saved_tensors[2]
+        tl = ctx.saved_tensors[3]
 
-            D = Q.shape[-1]
-            NUM_QUERIES = Q.shape[-2]
-            NUM_KEYS = K.shape[-2]
-            ROW_TILE_SIZE = max(16, NUM_QUERIES // (4 * D))
-            COLUMN_TILE_SIZE = max(16, NUM_KEYS // (4 * D))
-            BATCH_SIZE = Q.shape[0]
-            v_stride = max(16, NUM_KEYS // (4 * D))
-            q_stride = D
-            q_stride_dim = 1
-            k_stride = D
-            k_stride_dim = 1
-            v_stride = D
-            v_stride_dim = 1
-            o_stride = D
-            o_stride_dim = 1
-            l_stride = 1
-            l_stride_dim = 1
+        D = Q.shape[-1]
+        NUM_QUERIES = Q.shape[-2]
+        NUM_KEYS = K.shape[-2]
+        ROW_TILE_SIZE = max(16, NUM_QUERIES // (4 * D))
+        COLUMN_TILE_SIZE = max(16, NUM_KEYS // (4 * D))
+        BATCH_SIZE = Q.shape[0]
+        v_stride = max(16, NUM_KEYS // (4 * D))
+        q_stride = D
+        q_stride_dim = 1
+        k_stride = D
+        k_stride_dim = 1
+        v_stride = D
+        v_stride_dim = 1
+        o_stride = D
+        o_stride_dim = 1
+        l_stride = 1
+        l_stride_dim = 1
 
         
 
@@ -108,6 +108,4 @@ class TritonFlashAttention2Func(torch.autograd.Function):
             ROW_TILE_SIZE, COLUMN_TILE_SIZE,
             BATCH_SIZE,
         )
-        return
-
         
