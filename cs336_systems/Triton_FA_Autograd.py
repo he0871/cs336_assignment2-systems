@@ -51,6 +51,7 @@ class TritonFlashAttention2Func(torch.autograd.Function):
             NUM_QUERIES, NUM_KEYS, D,
             ROW_TILE_SIZE, COLUMN_TILE_SIZE,
             BATCH_SIZE,
+            is_causal,
         )
         tl = tl.squeeze(-1)
         ctx.save_for_backward(Q, K, V,tl,output)
@@ -120,6 +121,7 @@ class TritonFlashAttention2Func(torch.autograd.Function):
             NUM_QUERIES, NUM_KEYS, D,
             ROW_TILE_SIZE, COLUMN_TILE_SIZE,
             BATCH_SIZE,
+            is_causal,
         )
         
         return grad_q, grad_k, grad_v, None

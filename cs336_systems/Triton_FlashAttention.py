@@ -72,16 +72,17 @@ def flash_attention_kernel(
     
     for i in range(tl.cdiv(NUM_KEYS, COLUMN_TILE_SIZE)):
 
-        if is_causal:
-            casual_mask = tl.arange(0, COLUMN_TILE_SIZE) + i * COLUMN_TILE_SIZE < q_tile * ROW_TILE_SIZE
-        else:
-            casual_mask = tl.full((1, COLUMN_TILE_SIZE, ROW_TILE_SIZE), True, dtype=tl.bool)
-        casual_mask = casual_mask[None, :, None]
+       
+        row_mask = tl.arange(0, ROW_TILE_SIZE) + q_tile * ROW_TILE_SIZE
+        column_mask = tl.arange(0, COLUMN_TILE_SIZE) + i * COLUMN_TILE_SIZE 
+        casual_mask = column_mask[None, None, :] <= row_mask[None, :, None]
+
         k_block = tl.load(k_block_ptr, boundary_check=(0, 1), padding_option="zero")
         v_block = tl.load(v_block_ptr, boundary_check=(0, 1), padding_option="zero")
         k_transposed = tl.trans(k_block, (0,2, 1))
         s_j = tl.dot(q_block, k_transposed)
-        s_j = tl.where(casual_mask, s_j, float("-inf"))
+        if is_causal:
+            s_j = tl.where(casual_mask, s_j, float("-inf"))
         s_j = s_j / (D ** 0.5)
         prev_m = m_j
         m_j = tl.maximum(prev_m, tl.max(s_j, axis=2, keep_dims=True))
