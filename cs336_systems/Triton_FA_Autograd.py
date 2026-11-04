@@ -94,9 +94,9 @@ class TritonFlashAttention2Func(torch.autograd.Function):
         grad_v_stride_dim = 1
     
 
-        grad_q = torch.empty((BATCH_SIZE, NUM_QUERIES, D), device="cuda")
-        grad_k = torch.empty((BATCH_SIZE, NUM_KEYS, D), device="cuda")
-        grad_v = torch.empty((BATCH_SIZE, NUM_KEYS, D), device="cuda")
+        grad_q = torch.zeros((BATCH_SIZE, NUM_QUERIES, D), device="cuda")
+        grad_k = torch.zeros((BATCH_SIZE, NUM_KEYS, D), device="cuda")
+        grad_v = torch.zeros((BATCH_SIZE, NUM_KEYS, D), device="cuda")
 
         flash_attention_backward_kernel[(triton.cdiv(NUM_QUERIES,ROW_TILE_SIZE), BATCH_SIZE)](
             Q.contiguous().view(-1, D),
