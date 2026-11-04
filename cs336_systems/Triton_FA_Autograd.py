@@ -122,3 +122,4 @@ class TritonFlashAttention2Func(torch.autograd.Function):
             BATCH_SIZE,
         )
         
+        return grad_q, grad_k, grad_v, None
