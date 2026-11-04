@@ -84,6 +84,15 @@ class TritonFlashAttention2Func(torch.autograd.Function):
         o_stride_dim = 1
         l_stride = 1
         l_stride_dim = 1
+        grad_output_stride = D
+        grad_output_stride_dim = 1
+        grad_q_stride = D
+        grad_q_stride_dim = 1
+        grad_k_stride = D
+        grad_k_stride_dim = 1
+        grad_v_stride = D
+        grad_v_stride_dim = 1
+    
 
         grad_q = torch.empty((BATCH_SIZE, NUM_QUERIES, D), device="cuda")
         grad_k = torch.empty((BATCH_SIZE, NUM_KEYS, D), device="cuda")
@@ -102,8 +111,12 @@ class TritonFlashAttention2Func(torch.autograd.Function):
             q_stride, q_stride_dim,
             k_stride, k_stride_dim,
             v_stride, v_stride_dim,
-            o_stride, o_stride_dim,
             l_stride, l_stride_dim,
+            o_stride, o_stride_dim,
+            grad_output_stride, grad_output_stride_dim,
+            grad_q_stride, grad_q_stride_dim,
+            grad_k_stride, grad_k_stride_dim,
+            grad_v_stride, grad_v_stride_dim,
             NUM_QUERIES, NUM_KEYS, D,
             ROW_TILE_SIZE, COLUMN_TILE_SIZE,
             BATCH_SIZE,
