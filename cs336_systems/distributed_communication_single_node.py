@@ -13,7 +13,7 @@ def setup(rank, world_size):
 
 def distributed_demo(rank, world_size, tensor_size):
     setup(rank, world_size)
-    data = torch.randint(0, 10, (tensor_size,), device=f"cuda")
+    data = torch.randint(0, 10, (tensor_size,), device=f"cuda:{rank}")
     for _ in range(WARMUP_ITERATIONS):
         dist.all_reduce(data)
 
